@@ -1,4 +1,3 @@
-// src/App.js
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import './App.css';
@@ -17,26 +16,22 @@ function App() {
       try {
         const responseListaProdotti = await Axios.get('http://192.168.1.2:3001/api/v1/prodotti');
         const responseCategorieProdotti = await Axios.get('http://192.168.1.2:3001/api/v1/categorie');
-        const dataListaProdotti = responseListaProdotti.data;
-        const dataCategorie = responseCategorieProdotti.data;
-  
+        const dataListaProdotti = responseListaProdotti.data.products; // Accedi a "products" nell'oggetto restituito
+
         if (Array.isArray(dataListaProdotti)) {
           setProducts(dataListaProdotti);
         } else {
           console.error("I dati della lista prodotti non sono un array:", dataListaProdotti);
         }
-  
-        setCategories(dataCategorie);
-  
+
+        setCategories(responseCategorieProdotti.data);
       } catch (error) {
         console.error("Errore durante la richiesta API dei prodotti:", error);
       }
     }
-  
+
     fetchData();
   }, []);
-  
-  
 
   const applyFilters = () => {
     // Applica filtri qui e aggiorna lo stato dei prodotti
