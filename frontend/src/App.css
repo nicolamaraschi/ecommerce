@@ -1,0 +1,22 @@
+/* src/App.css */
+.app {
+  text-align: center;
+  margin: 20px;
+}
+
+.filters {
+  margin: 20px 0;
+}
+
+.product-card {
+  border: 1px solid #ccc;
+  margin: 10px;
+  padding: 10px;
+  text-align: left;
+  display: inline-block;
+}
+
+.products-container {
+  display: flex;
+  flex-wrap: wrap;
+}
