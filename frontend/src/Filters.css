@@ -1,0 +1,49 @@
+/* Stili per la sidebar chiusa */
+.sidebar {
+  background-color: rgb(255, 255, 255);
+  color: rgb(0, 0, 0);
+  display: block;
+  transition: width 0.3s ease-in-out; /* Aggiunge una transizione fluida all'apertura e chiusura */
+}
+
+
+/* Stili per i link delle categorie */
+.sidebar a {
+  display: inline-block; /* Mostra i link delle categorie in linea orizzontale */
+  color: rgb(68, 60, 60);
+  text-decoration: none;
+  margin-right: 10px; /* Aggiunge spazio tra i link */
+  font-size: 18px;
+  margin:1%;
+}
+
+/* Stili per i link delle categorie quando si passa sopra di essi */
+.sidebar a:hover {
+  background-color: #555; /* Colore di sfondo al passaggio del mouse */
+}
+
+/* Stile per il pulsante "Categorie" */
+.category-button {
+  cursor: pointer;
+  font-size: 16px;
+}
+
+
+/* Regola la larghezza della sidebar per i dispositivi tablet */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%; /* Larghezza al 100% per i tablet */
+  }
+
+  /* Nascondi la sidebar quando è chiusa sui tablet */
+  .sidebar:not(.sidebar-open) {
+    display: none;
+  }
+}
+
+/* Regola la larghezza della sidebar per i dispositivi mobili */
+@media (max-width: 480px) {
+  .sidebar {
+    width: 100%; /* Larghezza al 100% per i telefoni */
+  }
+}

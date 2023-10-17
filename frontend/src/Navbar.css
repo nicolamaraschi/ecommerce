@@ -1,0 +1,60 @@
+/* Stili per la navbar */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #333;
+  color: white;
+  padding: 10px 20px;
+}
+
+/* Stili per il logo */
+.navbar-logo img {
+  max-width: 100px;
+}
+
+/* Stili per la barra di ricerca */
+.navbar-search input {
+  padding: 8px;
+  border: none;
+  border-radius: 3px;
+}
+
+.navbar-search button {
+  padding: 8px 15px;
+  background-color: #555;
+  border: none;
+  border-radius: 3px;
+  color: white;
+  cursor: pointer;
+}
+
+/* Stili per i pulsanti a destra */
+.navbar-buttons button {
+  margin-left: 10px;
+  padding: 8px 15px;
+  background-color: #555;
+  border: none;
+  border-radius: 3px;
+  color: white;
+  cursor: pointer;
+}
+
+/* Stili per i selettori lingua e ordine */
+.navbar-buttons select,
+.navbar-order select {
+  padding: 8px;
+  border: none;
+  border-radius: 3px;
+}
+
+/* Stili per la navbar in modalità mobile (responsive) */
+@media (max-width: 768px) {
+  .navbar {
+    flex-direction: column;
+  }
+
+  .navbar-buttons {
+    margin-top: 10px;
+  }
+}

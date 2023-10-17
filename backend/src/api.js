@@ -27,20 +27,16 @@ db.connect((err) => {
   }
 });
 
-//http://localhost:3000/api/v1/ricercaProdotti?keyword=a&sort=asc
-router.get('/ricercaProdotti', (req, res) => {
-  const { keyword, sort } = req.query;
+// http://localhost:3000/api/v1/ricercaProdotti/a
+router.get('/ricercaProdotti/:prodottoNome', (req, res) => {
+  const prodottoNome = req.params.prodottoNome;
 
-  // Determina la direzione dell'ordinamento
-  const sortOrder = sort === 'asc' ? 'ASC' : 'DESC';
+  // Esegui una query SQL per cercare i prodotti con un nome che contiene il valore fornito
+  const query = `SELECT ID, Nome, Descrizione, Prezzo, Stock, CategoriaID, ImmaginePath
+                 FROM Prodotti
+                 WHERE Nome LIKE ?`;
 
-  // Esegui una query SQL per cercare i prodotti con un nome simile e ordina per prezzo
-  const query = `SELECT ID, Nome, Descrizione, Prezzo, Stock, CategoriaID, ImmaginePath 
-                 FROM Prodotti 
-                 WHERE Nome LIKE ? 
-                 ORDER BY Prezzo ${sortOrder}`;
-
-  db.query(query, [`%${keyword}%`], (err, results) => {
+  db.query(query, [`%${prodottoNome}%`], (err, results) => {
     if (err) {
       res.status(500).json({ error: 'Errore del server' });
       return;
@@ -62,6 +58,7 @@ router.get('/ricercaProdotti', (req, res) => {
     res.json(products);
   });
 });
+
 
 // Endpoint API per ottenere prodotti con Stock > 0
 router.get('/prodotti', (req, res) => {
@@ -91,7 +88,7 @@ router.get('/prodotti', (req, res) => {
 
 
 // ottieni tutti i prodotti di una categoria
-router.get('/prodotti/categoria/:categoriaID', (req, res) => {
+router.get('/prodottiCategoria/:categoriaID', (req, res) => {
   // Ottenimento del parametro dell'ID della categoria dall'URL
   const categoriaID = req.params.categoriaID;
 
