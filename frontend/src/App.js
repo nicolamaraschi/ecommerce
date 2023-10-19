@@ -1,3 +1,4 @@
+//src/pages/App.js
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import './App.css';
@@ -6,6 +7,8 @@ import Filters from './Filters';
 import Navbar from './Navbar';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'; // Importa il React Router
 import LoginPage from './pages/LoginPage'; // Assicurati di importare la pagina di login
+import RegistrationPage from './pages/RegistrationPage'; // Importa il componente della pagina di registrazione
+import CarrelloPage from './pages/CarrelloPage'; // Assicurati che il percorso sia corretto
 
 function App() {
   const [products, setProducts] = useState([]);
@@ -14,12 +17,21 @@ function App() {
   const [sortOption, setSortOption] = useState('none');
   const [searchTerm, setSearchTerm] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [loggedInUser, setLoggedInUser] = useState(null); // Inizializza loggedInUser a null
+
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
   useEffect(() => {
+    // Recupera il token JWT dalla memoria locale durante il caricamento iniziale
+    const token = localStorage.getItem('jwtToken');
+    if (token) {
+      // Se c'è un token nella memoria locale, imposta l'utente come autenticato
+      setLoggedInUser({ token });
+    }
+    
     async function fetchData() {
       try {
         const responseListaProdotti = await Axios.get('http://localhost:3001/api/v1/prodotti');
@@ -54,11 +66,17 @@ function App() {
       console.error("Errore durante la ricerca dei prodotti:", error);
     }
   };
+  //<Navbar toggleSidebar={toggleSidebar} handleSearch={handleSearch} />
 
   return (
     <Router>
       <div className="app">
-        <Navbar toggleSidebar={toggleSidebar} handleSearch={handleSearch} />
+      <Navbar
+          toggleSidebar={toggleSidebar}
+          handleSearch={handleSearch}
+          loggedInUser={loggedInUser} // Passa loggedInUser come prop
+          setLoggedInUser={setLoggedInUser} // Passa la funzione per impostare l'utente
+        />
         <Routes>
           <Route path="/" element={
             <div>
@@ -75,14 +93,15 @@ function App() {
               />
               <h1>Elenco dei Prodotti</h1>
               <div className="products-container">
-                {products.map((product) => (
-                  <ProductCard key={product.ID} product={product} />
-                ))}
+              {products.map((product) => (
+              <ProductCard key={product.ID} product={product} loggedInUser={loggedInUser} />
+            ))}
               </div>
             </div>
           } />
-          <Route path="/login" element={<LoginPage />} />
-          {/* Aggiungi altre route qui, se necessario */}
+         <Route path="/login" element={<LoginPage setLoggedInUser={setLoggedInUser} />} />
+          <Route path="/register" element={<RegistrationPage />}/>
+          <Route path="/carrello" element={<CarrelloPage utenteID={loggedInUser?.id} />} />
         </Routes>
       </div>
     </Router>

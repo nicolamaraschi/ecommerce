@@ -2,6 +2,8 @@ const express = require('express');
 const mysql = require('mysql2');
 const exphbs = require('express-handlebars');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
+const secretKey = 'e4a84578fc546ac8d2c066fd09148c93b1f2d3750eb1c36d3bced6f622c2991a6';
 
 
 // Importa la classe Utente
@@ -25,6 +27,62 @@ db.connect((err) => {
   } else {
     console.log('Connessione al database MySQL riuscita');
   }
+});
+
+// Middleware per verificare il token JWT
+function verifyToken(req, res, next) {
+  const token = req.header('Authorization');
+  if (!token) {
+    return res.status(403).json({ error: 'Token JWT mancante' });
+  }
+
+  jwt.verify(token, secretKey, (err, user) => {
+    if (err) {
+      return res.status(401).json({ error: 'Token JWT non valido' });
+    }
+
+    req.user = user;
+    next();
+  });
+}
+
+// prende tutti prodotti del carrello dell utente
+router.get('/utenti/:utenteID/carrello', (req, res) => {
+  const utenteID = req.params.utenteID;
+
+  // Effettua una query al database per recuperare i prodotti nel carrello di un utente
+  const query = `
+    SELECT p.ID, p.Nome, p.Descrizione, p.Prezzo, p.Stock, p.CategoriaID, p.ImmaginePath
+    FROM Prodotti AS p
+    INNER JOIN ProdottiNelCarrello AS pc ON p.ID = pc.ProdottoID
+    WHERE pc.UtenteID = ?;
+  `;
+
+  db.query(query, [utenteID], (err, results) => {
+      if (err) {
+          console.error("Errore durante l'esecuzione della query:", err);
+          res.status(500).json({ error: 'Errore del server' });
+          return;
+      }
+
+      // Controlla se la query ha restituito risultati validi
+      if (results && results.length > 0) {
+        // Mappa i risultati sui prodotti nel carrello
+        const products = results.map((row) => ({
+          ID: row.ID,
+          Nome: row.Nome,
+          Descrizione: row.Descrizione,
+          Prezzo: row.Prezzo,
+          Stock: row.Stock,
+          CategoriaID: row.CategoriaID,
+          ImmaginePath: row.ImmaginePath
+        }));
+
+        res.json(products);
+      } else {
+        res.status(404).json({ error: 'Nessun prodotto trovato nel carrello' });
+      }
+  });
 });
 
 // http://localhost:3000/api/v1/ricercaProdotti/a
@@ -86,7 +144,6 @@ router.get('/prodotti', (req, res) => {
 });
 
 
-
 // ottieni tutti i prodotti di una categoria
 router.get('/prodottiCategoria/:categoriaID', (req, res) => {
   // Ottenimento del parametro dell'ID della categoria dall'URL
@@ -120,8 +177,6 @@ router.get('/prodottiCategoria/:categoriaID', (req, res) => {
   });
 });
 
-
-
   // selezioni tutta la lista delle categorie, non i prodotti ma proprio il nome delle caterie prodotti
   router.get('/categorie', (req, res) => {
     // Effettua una query al tuo database per recuperare l'elenco delle categorie di prodotti cosmetici
@@ -142,14 +197,13 @@ router.get('/prodottiCategoria/:categoriaID', (req, res) => {
 
 // Rotta per la registrazione di un nuovo utente
 router.post('/registrazioneUtente', (req, res) => {
-  const utente = req.body; // Ricevi i dati dell'utente dall'oggetto JSON nella richiesta
+  const utente = req.body;
 
   if (!utente || !utente.Nome || !utente.Email || !utente.Password) {
     res.status(400).json({ error: 'Dati utente incompleti' });
     return;
   }
 
-  // Imposta il ruolo direttamente nell'API
   utente.Ruolo = 'Cliente';
 
   const query = 'INSERT INTO Utenti (Nome, Email, Password, Ruolo) VALUES (?, ?, ?, ?)';
@@ -160,15 +214,21 @@ router.post('/registrazioneUtente', (req, res) => {
       res.status(500).json({ error: 'Errore del server' });
       return;
     }
+
     const utenteInserito = {
       id: results.insertId,
       Nome: utente.Nome,
       Email: utente.Email,
       Ruolo: utente.Ruolo,
     };
-    res.status(201).json(utenteInserito);
+
+    // Genera un token JWT per il nuovo utente
+    const token = jwt.sign(utenteInserito, secretKey, { expiresIn: '1h' }); // Il token scadrà dopo 1 ora
+
+    res.status(201).json({ utente: utenteInserito, token });
   });
 });
+
 
 // per il login degli utenti
 router.post('/loginUtente', (req, res) => {
@@ -191,65 +251,74 @@ router.post('/loginUtente', (req, res) => {
     }
 
     const user = results[0];
-    // Crea un oggetto Utente utilizzando i dati ottenuti dal database
     const utente = {
       id: user.ID,
       Nome: user.Nome,
       Email: user.Email,
       Ruolo: user.Ruolo,
     };
-    
-    // Restituisci una risposta con stato 200 OK e i dettagli dell'utente
-    res.status(200).json({ message: 'Login riuscito', utente });
+
+    // Genera un token JWT
+    const token = jwt.sign(utente, secretKey, { expiresIn: '1h' }); // Il token scadrà dopo 1 ora
+
+    res.status(200).json({ utente, message: 'Login riuscito', token });
   });
 });
 
-// prende tutti prodotti del carrello dell utente
-router.get('/utenti/:utenteID/carrello', (req, res) => {
-  const utenteID = req.params.utenteID;
 
-  // Effettua una query al database per recuperare i prodotti nel carrello di un utente
-  const query = `
-    SELECT p.ID, p.Nome, p.Descrizione, p.Prezzo, p.Stock, p.CategoriaID, p.ImmaginePath
-    FROM Prodotti AS p
-    INNER JOIN ProdottiNelCarrello AS pc ON p.ID = pc.ProdottoID
-    WHERE pc.UtenteID = ?;
-  `;
+//creo carrello utente
+router.post('/creaCarrello', (req, res) => {
+  const { utenteId } = req.body;
 
-  db.query(query, [utenteID], (err, results) => {
+  // Query per verificare se l'utente esiste
+  const checkUserQuery = 'SELECT * FROM Utenti WHERE ID = ?';
+  db.query(checkUserQuery, [utenteId], (err, results) => {
+    if (err) {
+      res.status(500).json({ error: 'Errore1' });
+      return;
+    }
+
+    if (results.length === 0) {
+      res.status(404).json({ error: 'Utente non trovato' });
+      return;
+    }
+
+    // Query per verificare se l'utente ha già un carrello
+    const checkCartQuery = 'SELECT * FROM Carrelli WHERE UtenteID = ?';
+    db.query(checkCartQuery, [utenteId], (err, results) => {
       if (err) {
-          console.error("Errore durante l'esecuzione della query:", err);
+        res.status(500).json({ error: 'Errore2' });
+        return;
+      }
+
+      if (results.length > 0) {
+        res.status(409).json({ error: 'Creazione di carrello fallita, carrello già esistente' });
+        return;
+      }
+
+      // Altrimenti, crea un nuovo carrello e assegnalo all'utente
+      const insertQuery = 'INSERT INTO Carrelli (UtenteID) VALUES (?)';
+
+      db.query(insertQuery, [utenteId], (err, results) => {
+        if (err) {
           res.status(500).json({ error: 'Errore del server' });
           return;
-      }
-
-      // Controlla se la query ha restituito risultati validi
-      if (results && results.length > 0) {
-        // Mappa i risultati sui prodotti nel carrello
-        const products = results.map((row) => ({
-          ID: row.ID,
-          Nome: row.Nome,
-          Descrizione: row.Descrizione,
-          Prezzo: row.Prezzo,
-          Stock: row.Stock,
-          CategoriaID: row.CategoriaID,
-          ImmaginePath: row.ImmaginePath
-        }));
-
-        res.json(products);
-      } else {
-        res.status(404).json({ error: 'Nessun prodotto trovato nel carrello' });
-      }
+        }
+        res.status(201).json({ message: 'Nuovo carrello creato con successo e assegnato all\'utente' });
+      });
+    });
   });
 });
+
+
+
 
 //{ "quantity": 50} for testing
 // aggiungi un prodotto al carrelo della quantita richiesta
-router.post('/:id/aggiungi-al-carrello', (req, res) => {
-  const productId = req.params.id;
+router.post('/aggiungiProdottoCarrello', (req, res) => {
+  const productId = req.body.id;
   const quantity = req.body.quantity || 1; // Consenti all'utente di specificare la quantità, utilizza 1 come valore predefinito
-
-  const utenteId = 1; // Sostituisci con la logica per ottenere l'ID dell'utente corrente o l'ID del carrello
+  const utenteId = req.body.utenteID; // Ottieni l'ID dell'utente dal corpo della richiesta
 
   const insertQuery = 'INSERT INTO ProdottiNelCarrello (UtenteID, ProdottoID, Quantita, Prezzo) VALUES (?, ?, ?, (SELECT Prezzo FROM Prodotti WHERE ID = ?))';
 
@@ -261,6 +330,7 @@ router.post('/:id/aggiungi-al-carrello', (req, res) => {
     res.status(201).json({ message: 'Prodotto aggiunto al carrello con successo' });
   });
 });
+
 
 //elimina un prodotto del carrello della quantita richiesto
 router.delete('/:id/rimuovi-dal-carrello', (req, res) => {

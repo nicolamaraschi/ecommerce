@@ -1,0 +1,58 @@
+/* Carrello.css */
+
+.carrello-container {
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  
+  .carrello-list {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .carrello-item {
+    display: flex;
+    align-items: center;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin: 10px 0;
+    padding: 10px;
+  }
+  
+  .carrello-item-info {
+    flex: 2;
+    text-align: left;
+  }
+  
+  .carrello-item-image {
+    flex: 1;
+    text-align: center;
+  }
+  
+  img {
+    max-width: 100px;
+    max-height: 100px;
+  }
+  
+  h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+  
+  p {
+    font-size: 16px;
+    margin: 5px 0;
+  }
+  
+  @media (max-width: 500px) {
+    .carrello-container {
+      max-width: 90%;
+    }
+  }
+  

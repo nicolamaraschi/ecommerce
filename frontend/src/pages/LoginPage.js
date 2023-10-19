@@ -1,10 +1,15 @@
 //src/pages/LoginPage.js
-
 import React, { useState } from 'react';
+import Axios from 'axios';
+import './LoginPage.css';
+import { useNavigate } from 'react-router-dom';
 
-function Login({ onLogin }) {
+function LoginPage({ setLoggedInUser }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [message, setMessage] = useState(''); // Stato per il messaggio
+  const [messageStyle, setMessageStyle] = useState({}); // Stato per lo stile del messaggio
+  const navigate = useNavigate();
 
   const handleEmailChange = (e) => {
     setEmail(e.target.value);
@@ -14,41 +19,72 @@ function Login({ onLogin }) {
     setPassword(e.target.value);
   };
 
-  const handleLogin = () => {
-    // Esegui il login e controlla le credenziali
-    if (email === 'tuo@email.com' && password === 'passwordsegreta') {
-      onLogin(true); // Passa `true` per indicare il login riuscito
+  // Nel tuo componente LoginPage
+const handleLogin = async () => {
+  try {
+    const response = await Axios.post('http://localhost:3001/api/v1/loginUtente', {
+      Email: email,
+      Password: password,
+    });
+
+    if (response.status === 200) {
+      // Login riuscito
+      const data = response.data;
+      // Assicurati che setLoggedInUser accetti un oggetto utente
+      setLoggedInUser({
+        id: data.utente.id, // Assumi che ci sia un campo "id" nell'oggetto utente
+        token: data.token,
+      });
+      localStorage.setItem('jwtToken', data.token);
+      console.log('Token JWT:', data.token);
+      setMessage(data.message);
+      setMessageStyle({ color: 'green' });
+      navigate('/');
+
     } else {
-      onLogin(false); // Passa `false` per indicare il login non riuscito
+      // Login non riuscito
+      const data = response.data;
+      setMessage(data.error);
+      setMessageStyle({ color: 'red' });
     }
-  };
+  } catch (error) {
+    console.error('Errore durante il login:', error);
+    setMessage('Errore durante il login');
+    setMessageStyle({ color: 'red' });
+  }
+
+  // Nascondi il messaggio dopo 4 secondi
+  setTimeout(() => {
+    setMessage('');
+    setMessageStyle({});
+  }, 4000);
+};
 
   return (
     <div className="login-container">
       <h1>Login Utente</h1>
-      <label htmlFor="email">Email:</label>
-      <input
-        type="email"
-        id="email"
-        name="email"
-        required
-        value={email}
-        onChange={handleEmailChange}
-      />
+      <form>
+        <label>Email:</label>
+        <input
+          type="email"
+          placeholder="Indirizzo email"
+          value={email}
+          onChange={handleEmailChange}
+        />
+        <label>Password:</label>
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={handlePasswordChange}
+        />
+        <button type="button" onClick={handleLogin}>Login</button>
+      </form>
 
-      <label htmlFor="password">Password:</label>
-      <input
-        type="password"
-        id="password"
-        name="password"
-        required
-        value={password}
-        onChange={handlePasswordChange}
-      />
-
-      <button onClick={handleLogin}>Accedi</button>
+      {/* Visualizza il messaggio con lo stile appropriato */}
+      {message && <p style={messageStyle}>{message}</p>}
     </div>
   );
 }
 
-export default Login;
+export default LoginPage;

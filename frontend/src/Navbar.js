@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import Axios from 'axios';
 import './Navbar.css';
-import './Filters.css';
 import { Link } from 'react-router-dom'; // Importa il componente Link per il routing
 import LoginPage from './pages/LoginPage'; // Importa il componente LoginPage
 
@@ -20,11 +19,19 @@ function Navbar({ toggleSidebar, handleSearch }) {
   const showLogin = () => {
     setLoginVisible(true);
   };
+  const showRegister = () => {
+    
+  };
+  const showCarrello = () => {
+    // Implementa la navigazione al carrello
+  };
 
   return (
     <nav className="navbar">
       <div className="navbar-logo">
-        <img src="logo.png" alt="Logo" />
+      <Link to="/">
+        <img src="/images/logo.ico" alt="Logo" />
+        </Link>
       </div>
       <div className="navbar-search">
         <input
@@ -36,11 +43,19 @@ function Navbar({ toggleSidebar, handleSearch }) {
         <button onClick={search}>Cerca</button>
       </div>
       <div className="navbar-buttons">
-        <button>Carrello</button>
-        <button onClick={showLogin}>
-          <Link to="/login">Login</Link>
-        </button>
-        <button>Registrazione</button>
+
+      <Link to="/carrello">
+          <button onClick={showCarrello}>Carrello</button>
+        </Link>
+
+        <Link to="/login">
+          <button onClick={showLogin}>Login</button>
+        </Link>
+
+        <Link to="/register">
+          <button onClick={showRegister}>Register</button>
+        </Link>
+
         <select>
           <option value="it">Italiano</option>
           <option value="en">English</option>
