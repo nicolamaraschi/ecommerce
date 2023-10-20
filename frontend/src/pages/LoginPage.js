@@ -1,4 +1,3 @@
-//src/pages/LoginPage.js
 import React, { useState } from 'react';
 import Axios from 'axios';
 import './LoginPage.css';
@@ -19,46 +18,47 @@ function LoginPage({ setLoggedInUser }) {
     setPassword(e.target.value);
   };
 
-  // Nel tuo componente LoginPage
-const handleLogin = async () => {
-  try {
-    const response = await Axios.post('http://localhost:3001/api/v1/loginUtente', {
-      Email: email,
-      Password: password,
-    });
-
-    if (response.status === 200) {
-      // Login riuscito
-      const data = response.data;
-      // Assicurati che setLoggedInUser accetti un oggetto utente
-      setLoggedInUser({
-        id: data.utente.id, // Assumi che ci sia un campo "id" nell'oggetto utente
-        token: data.token,
+  const handleLogin = async () => {
+    try {
+      const response = await Axios.post('http://localhost:3001/api/v1/loginUtente', {
+        Email: email,
+        Password: password,
       });
-      localStorage.setItem('jwtToken', data.token);
-      console.log('Token JWT:', data.token);
-      setMessage(data.message);
-      setMessageStyle({ color: 'green' });
-      navigate('/');
 
-    } else {
-      // Login non riuscito
-      const data = response.data;
-      setMessage(data.error);
+      if (response.status === 200) {
+        // Login riuscito
+        const data = response.data;
+
+        // Assicurati che setLoggedInUser accetti un oggetto utente
+        setLoggedInUser({
+          id: data.utente.id, // Assumi che ci sia un campo "id" nell'oggetto utente
+          token: data.token,
+        });
+
+        localStorage.setItem('jwtToken', data.token);
+        localStorage.setItem('utenteID', data.utente.id); // Salva l'utenteID
+
+        setMessage(data.message);
+        setMessageStyle({ color: 'green' });
+        navigate('/');
+      } else {
+        // Login non riuscito
+        const data = response.data;
+        setMessage(data.error);
+        setMessageStyle({ color: 'red' });
+      }
+    } catch (error) {
+      console.error('Errore durante il login:', error);
+      setMessage('Errore durante il login');
       setMessageStyle({ color: 'red' });
     }
-  } catch (error) {
-    console.error('Errore durante il login:', error);
-    setMessage('Errore durante il login');
-    setMessageStyle({ color: 'red' });
-  }
 
-  // Nascondi il messaggio dopo 4 secondi
-  setTimeout(() => {
-    setMessage('');
-    setMessageStyle({});
-  }, 4000);
-};
+    // Nascondi il messaggio dopo 4 secondi
+    setTimeout(() => {
+      setMessage('');
+      setMessageStyle({});
+    }, 4000);
+  };
 
   return (
     <div className="login-container">
@@ -78,7 +78,11 @@ const handleLogin = async () => {
           value={password}
           onChange={handlePasswordChange}
         />
-        <button type="button" onClick={handleLogin}>Login</button>
+        <div class="button-container">
+          <button type="button" onClick={handleLogin}>
+            Login
+          </button>
+        </div>
       </form>
 
       {/* Visualizza il messaggio con lo stile appropriato */}

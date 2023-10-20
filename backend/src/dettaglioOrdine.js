@@ -8,3 +8,5 @@ class DettaglioOrdine {
       this.Prezzo = Prezzo;
     }
   }
+
+  module.exports = DettaglioOrdine;

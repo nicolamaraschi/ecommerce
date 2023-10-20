@@ -8,3 +8,6 @@ class Commento {
       this.DataCommento = DataCommento;
     }
   }
+
+  
+  module.exports = Commento;

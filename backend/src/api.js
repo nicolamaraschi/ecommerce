@@ -2,13 +2,16 @@ const express = require('express');
 const mysql = require('mysql2');
 const exphbs = require('express-handlebars');
 const router = express.Router();
-const jwt = require('jsonwebtoken');
-const secretKey = 'e4a84578fc546ac8d2c066fd09148c93b1f2d3750eb1c36d3bced6f622c2991a6';
+
 
 
 // Importa la classe Utente
 const Utente = require('./Utente'); 
 const Prodotto = require('./prodotto');
+const ShoppingCartItem = require('./ShoppingCartItem');
+const DettagliOrdine = require('./DettagliOrdine');
+const Ordine = require('./Ordine');
+
 const bodyParser = require('body-parser'); // Importa body-parser 
 
 // Configura la connessione al database MySQL
@@ -29,61 +32,61 @@ db.connect((err) => {
   }
 });
 
-// Middleware per verificare il token JWT
-function verifyToken(req, res, next) {
-  const token = req.header('Authorization');
+const jwt = require('jsonwebtoken');
+const secretKey = 'e4a84578fc546ac8d2c066fd09148c93b1f2d3750eb1c36d3bced6f622c2991a6';
+
+// Middleware per verificare il token nelle richieste
+function verificaToken(req, res, next) {
+  const token = req.headers.authorization;
+
   if (!token) {
-    return res.status(403).json({ error: 'Token JWT mancante' });
+    return res.status(403).json({ error: 'Token mancante' });
   }
 
-  jwt.verify(token, secretKey, (err, user) => {
+  jwt.verify(token.split(' ')[1], secretKey, (err, decoded) => {
     if (err) {
-      return res.status(401).json({ error: 'Token JWT non valido' });
+      return res.status(401).json({ error: 'Token non valido' });
     }
-
-    req.user = user;
+    req.utente = decoded; // Salva le registrazione dell'utente per l'uso nelle rotte successive
     next();
   });
 }
 
+
 // prende tutti prodotti del carrello dell utente
-router.get('/utenti/:utenteID/carrello', (req, res) => {
+router.get('/utenti/:utenteID/carrello',verificaToken, (req, res) => {
   const utenteID = req.params.utenteID;
 
   // Effettua una query al database per recuperare i prodotti nel carrello di un utente
   const query = `
-    SELECT p.ID, p.Nome, p.Descrizione, p.Prezzo, p.Stock, p.CategoriaID, p.ImmaginePath
-    FROM Prodotti AS p
-    INNER JOIN ProdottiNelCarrello AS pc ON p.ID = pc.ProdottoID
+    SELECT pc.*, p.Nome, p.Descrizione, p.Prezzo, p.Stock, p.CategoriaID, p.ImmaginePath
+    FROM ProdottiNelCarrello AS pc
+    INNER JOIN Prodotti AS p ON pc.ProdottoID = p.ID
     WHERE pc.UtenteID = ?;
   `;
 
   db.query(query, [utenteID], (err, results) => {
-      if (err) {
-          console.error("Errore durante l'esecuzione della query:", err);
-          res.status(500).json({ error: 'Errore del server' });
-          return;
-      }
+    if (err) {
+      console.error("Errore durante l'esecuzione della query:", err);
+      res.status(500).json({ error: 'Errore del server' });
+      return;
+    }
 
-      // Controlla se la query ha restituito risultati validi
-      if (results && results.length > 0) {
-        // Mappa i risultati sui prodotti nel carrello
-        const products = results.map((row) => ({
-          ID: row.ID,
-          Nome: row.Nome,
-          Descrizione: row.Descrizione,
-          Prezzo: row.Prezzo,
-          Stock: row.Stock,
-          CategoriaID: row.CategoriaID,
-          ImmaginePath: row.ImmaginePath
-        }));
+    // Controlla se la query ha restituito risultati validi
+    if (results && results.length > 0) {
+      // Mappa i risultati sulla classe Prodotto
+      const shoppingCartItems = results.map((row) => new ShoppingCartItem(row.ID, row.UtenteID, row.ProdottoID, row.Quantita, row.Prezzo));
+      
+      // Mappa i risultati sulla classe Prodotto
+      const products = results.map((row) => new Prodotto(row.ProdottoID, row.Nome, row.Descrizione, row.Prezzo, row.Stock, row.CategoriaID, row.ImmaginePath));
 
-        res.json(products);
-      } else {
-        res.status(404).json({ error: 'Nessun prodotto trovato nel carrello' });
-      }
+      res.json({ shoppingCartItems, products });
+    } else {
+      res.status(404).json({ error: 'Nessun prodotto trovato nel carrello' });
+    }
   });
 });
+
 
 // http://localhost:3000/api/v1/ricercaProdotti/a
 router.get('/ricercaProdotti/:prodottoNome', (req, res) => {
@@ -376,11 +379,100 @@ router.delete('/:id/rimuovi-dal-carrello', (req, res) => {
   });
 });
 
+// Modifica la quantità di un prodotto nel carrello
+router.put('/modifica-quantita', (req, res) => {
+  const productId = req.body.prodottoID; // ID del prodotto da modificare
+  const newQuantity = req.body.quantita; // Nuova quantità specificata nel corpo della richiesta
+  const utenteId = req.body.utenteID; // ID dell'utente
+
+  // Verifica se il prodotto è presente nel carrello dell'utente
+  const checkQuery = 'SELECT Quantita FROM ProdottiNelCarrello WHERE UtenteID = ? AND ProdottoID = ?';
+
+  db.query(checkQuery, [utenteId, productId], (err, results) => {
+    if (err) {
+      res.status(500).json({ error: 'Errore del server' });
+      return;
+    }
+
+    if (results.length === 0) {
+      res.status(404).json({ error: 'Prodotto non trovato nel carrello' });
+      return;
+    }
+
+    const currentQuantity = results[0].Quantita;
+
+    // Assicurati che la nuova quantità sia maggiore di zero
+    if (newQuantity <= 0) {
+      res.status(400).json({ error: 'La quantità deve essere maggiore di zero' });
+      return;
+    }
+
+    // Aggiorna la quantità nel carrello
+    const updateQuery = 'UPDATE ProdottiNelCarrello SET Quantita = ? WHERE UtenteID = ? AND ProdottoID = ?';
+
+    db.query(updateQuery, [newQuantity, utenteId, productId], (err, updateResult) => {
+      if (err) {
+        res.status(500).json({ error: 'Errore del server' });
+        return;
+      }
+
+      res.status(200).json({ message: 'Quantità del prodotto nel carrello aggiornata con successo' });
+    });
+  });
+});
 
 
 
 
+router.post('/utenti/ordini', (req, res) => {
+  const utenteID = req.body.utenteID; // Dati passati nel corpo della richiesta
+  const query = 'SELECT * FROM Ordini WHERE UtenteID = ?';
 
+  db.query(query, [utenteID], (err, results) => {
+    if (err) {
+      console.error('Errore durante la query: ' + err);
+      res.status(500).json({ error: 'Errore del server' });
+      return;
+    }
+
+    // Mappa i risultati sulla classe Ordine
+    const ordini = results.map((row) => {
+      return new Ordine(row.ID, row.UtenteID, row.DataOrdine, row.Totale);
+    });
+
+    res.json(ordini);
+  });
+});
+
+
+/*
+router.post('/ordini/dettagli', (req, res) => {
+  const ordineID = req.body.OrdineID; // Dati passati nel corpo della richiesta
+  const utenteID = req.body.UtenteID; // Dati passati nel corpo della richiesta
+  const query = 'SELECT d.*, p.ID AS ProdottoID, p.Nome AS NomeProdotto, p.Descrizione AS DescrizioneProdotto, ' +
+                'p.Prezzo AS PrezzoProdotto, p.Stock AS StockProdotto ' +
+                'FROM DettagliOrdini d ' +
+                'JOIN Prodotti p ON d.ProdottoID = p.ID ' +
+                'WHERE d.OrdineID = ? AND d.UtenteID = ?';
+
+  db.query(query, [ordineID, utenteID], (err, results) => {
+    if (err) {
+      console.error('Errore durante la query: ' + err);
+      res.status(500).json({ error: 'Errore del server' });
+      return;
+    }
+
+    // Mappa i risultati sulla classe DettagliOrdine con informazioni sui prodotti
+    const dettagliOrdini = results.map((row) => {
+      const prodotto = new Prodotto(row.ID, row.Nome, row.Descrizione, row.Prezzo, row.Stock);
+      return new DettagliOrdine(row.ID, row.OrdineID, row.ProdottoID, row.Quantita, row.Prezzo);
+    });
+
+    res.json(dettagliOrdini);
+  });
+});
+
+*/
 
 
 

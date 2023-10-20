@@ -7,3 +7,5 @@ class Ordine {
       this.Totale = Totale;
     }
   }
+
+  module.exports = Ordine;

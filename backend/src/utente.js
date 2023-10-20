@@ -7,3 +7,4 @@ class Utente {
     this.Ruolo = Ruolo; // Assicurati di includere il parametro Ruolo
   }
 }
+module.exports = Utente;
