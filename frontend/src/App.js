@@ -9,6 +9,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'; // Im
 import LoginPage from './pages/LoginPage'; // Assicurati di importare la pagina di login
 import RegistrationPage from './pages/RegistrationPage'; // Importa il componente della pagina di registrazione
 import CarrelloPage from './pages/CarrelloPage'; // Assicurati che il percorso sia corretto
+import AdminPage from './pages/AdminPage';
 
 function App() {
   const [products, setProducts] = useState([]);
@@ -101,7 +102,8 @@ function App() {
           } />
          <Route path="/login" element={<LoginPage setLoggedInUser={setLoggedInUser} />} />
           <Route path="/register" element={<RegistrationPage />}/>
-          <Route path="/carrello" element={<CarrelloPage utenteID={loggedInUser?.id} />} />
+          <Route path="/carrello" element={<CarrelloPage utenteID={loggedInUser?.id} setLoggedInUser={setLoggedInUser} />} />
+          <Route path="/AdminPage" element={<AdminPage />} />
         </Routes>
       </div>
     </Router>

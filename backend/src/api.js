@@ -334,6 +334,34 @@ router.post('/aggiungiProdottoCarrello', (req, res) => {
   });
 });
 
+//ESEMPIO AGGIUNTO PRODOTTO ALLA SESSIONE DEL CARRELLO
+// Aggiungi un prodotto al carrello della sessione non loggata
+router.post('/aggiungiProdottoAlCarrelloSessione', (req, res) => {
+  const productId = req.body.id;
+  const quantity = req.body.quantity || 1; // Consenti all'utente di specificare la quantità, utilizza 1 come valore predefinito
+
+  // Verifica se esiste un carrello nella sessione
+  if (!req.session.shoppingCart) {
+    req.session.shoppingCart = [];
+  }
+
+  // Cerca se il prodotto è già presente nel carrello
+  const existingProduct = req.session.shoppingCart.find(item => item.productId === productId);
+
+  if (existingProduct) {
+    // Se il prodotto è già nel carrello, aggiorna la quantità
+    existingProduct.quantity += quantity;
+  } else {
+    // Se il prodotto non è nel carrello, aggiungilo
+    req.session.shoppingCart.push({
+      productId,
+      quantity
+    });
+  }
+
+  res.status(201).json({ message: 'Prodotto aggiunto al carrello con successo' });
+});
+
 
 //elimina un prodotto del carrello della quantita richiesto
 router.delete('/:id/rimuovi-dal-carrello', (req, res) => {
@@ -424,6 +452,26 @@ router.put('/modifica-quantita', (req, res) => {
 
 
 
+
+
+
+
+router.get('/utenti/con-ordini', (req, res) => {
+  const query = 'SELECT DISTINCT UtenteID FROM Ordini';
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('Errore durante la query: ' + err);
+      res.status(500).json({ error: 'Errore del server' });
+      return;
+    }
+
+    const utentiConOrdini = results.map((row) => row.UtenteID);
+    res.json(utentiConOrdini);
+  });
+});
+
+
 router.post('/utenti/ordini', (req, res) => {
   const utenteID = req.body.utenteID; // Dati passati nel corpo della richiesta
   const query = 'SELECT * FROM Ordini WHERE UtenteID = ?';
@@ -445,34 +493,43 @@ router.post('/utenti/ordini', (req, res) => {
 });
 
 
-/*
+// API per ottenere i dati dei dettagli dell'ordine e dei prodotti presenti nei dettagli dell'ordine
 router.post('/ordini/dettagli', (req, res) => {
-  const ordineID = req.body.OrdineID; // Dati passati nel corpo della richiesta
-  const utenteID = req.body.UtenteID; // Dati passati nel corpo della richiesta
+  const utenteID = req.body.UtenteID; // Aggiunto UtenteID
   const query = 'SELECT d.*, p.ID AS ProdottoID, p.Nome AS NomeProdotto, p.Descrizione AS DescrizioneProdotto, ' +
                 'p.Prezzo AS PrezzoProdotto, p.Stock AS StockProdotto ' +
                 'FROM DettagliOrdini d ' +
+                'JOIN Ordini o ON d.OrdineID = o.ID ' +
                 'JOIN Prodotti p ON d.ProdottoID = p.ID ' +
-                'WHERE d.OrdineID = ? AND d.UtenteID = ?';
+                'WHERE o.UtenteID = ?'; 
 
-  db.query(query, [ordineID, utenteID], (err, results) => {
+  db.query(query, [utenteID], (err, results) => {
     if (err) {
       console.error('Errore durante la query: ' + err);
       res.status(500).json({ error: 'Errore del server' });
       return;
     }
 
-    // Mappa i risultati sulla classe DettagliOrdine con informazioni sui prodotti
+    // Mappa i risultati sulla classe DettagliOrdine con informazioni complete sui prodotti
     const dettagliOrdini = results.map((row) => {
-      const prodotto = new Prodotto(row.ID, row.Nome, row.Descrizione, row.Prezzo, row.Stock);
-      return new DettagliOrdine(row.ID, row.OrdineID, row.ProdottoID, row.Quantita, row.Prezzo);
+      const prodotto = new Prodotto(row.ProdottoID, row.NomeProdotto, row.DescrizioneProdotto, row.PrezzoProdotto, row.StockProdotto);
+      const dettagliOrdine = new DettagliOrdine(row.ID, row.OrdineID, prodotto, row.Quantita, row.Prezzo);
+      return {
+        DettagliOrdine: dettagliOrdine,
+        Prodotto: prodotto,
+      };
     });
 
     res.json(dettagliOrdini);
   });
 });
 
-*/
+
+
+
+
+
+
 
 
 

@@ -46,10 +46,12 @@ function CarrelloPage() {
 
   // Rimuovi l'argomento "utenteID" da handleQuantitaChange poiché non è più necessario
   const handleQuantitaChange = async (item, newQuantita) => {
+    const utenteID = localStorage.getItem('utenteID');
     // Crea il corpo della richiesta
     const requestBody = {
       prodottoID: item.ProdottoID,
       quantita: newQuantita,
+      utenteID: utenteID,
     };
 
     try {

@@ -6,8 +6,8 @@ import { useNavigate } from 'react-router-dom';
 function LoginPage({ setLoggedInUser }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [message, setMessage] = useState(''); // Stato per il messaggio
-  const [messageStyle, setMessageStyle] = useState({}); // Stato per lo stile del messaggio
+  const [message, setMessage] = useState('');
+  const [messageStyle, setMessageStyle] = useState({});
   const navigate = useNavigate();
 
   const handleEmailChange = (e) => {
@@ -26,23 +26,23 @@ function LoginPage({ setLoggedInUser }) {
       });
 
       if (response.status === 200) {
-        // Login riuscito
         const data = response.data;
-
-        // Assicurati che setLoggedInUser accetti un oggetto utente
         setLoggedInUser({
-          id: data.utente.id, // Assumi che ci sia un campo "id" nell'oggetto utente
+          id: data.utente.id,
+          ruolo: data.utente.Ruolo, // Aggiungi il ruolo utente
           token: data.token,
         });
 
         localStorage.setItem('jwtToken', data.token);
-        localStorage.setItem('utenteID', data.utente.id); // Salva l'utenteID
+        localStorage.setItem('utenteID', data.utente.id);
+        localStorage.setItem('role', data.utente.Ruolo);
+       
+    
 
         setMessage(data.message);
         setMessageStyle({ color: 'green' });
         navigate('/');
       } else {
-        // Login non riuscito
         const data = response.data;
         setMessage(data.error);
         setMessageStyle({ color: 'red' });
@@ -53,7 +53,6 @@ function LoginPage({ setLoggedInUser }) {
       setMessageStyle({ color: 'red' });
     }
 
-    // Nascondi il messaggio dopo 4 secondi
     setTimeout(() => {
       setMessage('');
       setMessageStyle({});
@@ -84,8 +83,6 @@ function LoginPage({ setLoggedInUser }) {
           </button>
         </div>
       </form>
-
-      {/* Visualizza il messaggio con lo stile appropriato */}
       {message && <p style={messageStyle}>{message}</p>}
     </div>
   );
